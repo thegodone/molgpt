@@ -34,7 +34,7 @@ has_gpu = torch.cuda.is_available()
 has_mps = getattr(torch,'has_mps',False)
  
 device = "mps" if getattr(torch,'has_mps',False) \
-    else "gpu" if torch.cuda.is_available() else "cpu"
+    else "cuda" if torch.cuda.is_available() else "cpu"
  
 print(f"Python Platform: {platform.platform()}") #Python Platform: macOS-13.3.1-arm64-arm-64bit
 print(f"PyTorch Version: {torch.__version__}") #PyTsorch Version: 2.0.1
