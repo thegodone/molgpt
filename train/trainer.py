@@ -68,15 +68,11 @@ class Trainer:
         logger.info("saving %s", self.config.ckpt_path)
         torch.save(raw_model.state_dict(), self.config.ckpt_path)
 
-    def train(self, wandb):
+    def train(self, mylogger):
         model, config = self.model, self.config
         raw_model = model.module if hasattr(self.model, "module") else model
         optimizer = raw_model.configure_optimizers(config)
         scaler = GradScaler()
-
-        # [' ', '#', '(', ')', '-', '1', '2', '3', '4', '5', '6', '<', '=', 'B', 'C', 'F', 'H', 'N', 'O', 'S', '[', ']', 'c', 'l', 'n', 'o', 'r', 's']
-        # ['#', '(', ')', '-', '1', '2', '3', '4', '5', '6', '<', '=', 'Br', 'C', 'Cl', 'F', 'N', 'O', 'S', '[H]', '[nH]', 'c', 'n', 'o', 's']
-
 
         def run_epoch(split):
             is_train = split == 'train'
@@ -130,8 +126,9 @@ class Trainer:
                         lr = config.learning_rate
 
                     # report progress
-                    wandb.log({'step_train_loss': loss, 'train_step': it + epoch*len(loader), 'learning_rate': lr})
-                    pbar.set_description(f"epoch {epoch+1} iter {it}: train loss {loss.item():.5f}. lr {lr:e}")
+                    losscpu = loss.item()
+                    mylogger.info({'step_train_loss': losscpu, 'train_step': it + epoch*len(loader), 'learning_rate': lr})
+                    pbar.set_description(f"epoch {epoch+1} iter {it}: train loss {losscpu:.5f}. lr {lr:e}")
     
             if is_train:
                 return float(np.mean(losses))
@@ -151,7 +148,7 @@ class Trainer:
             if self.test_dataset is not None:
                 test_loss = run_epoch('test')
 
-            wandb.log({'epoch_valid_loss': test_loss, 'epoch_train_loss': train_loss, 'epoch': epoch + 1})
+            mylogger.info({'epoch_valid_loss': test_loss, 'epoch_train_loss': train_loss, 'epoch': epoch + 1})
 
             # supports early stopping based on the test loss, or just save always if no test set is provided
             good_model = self.test_dataset is None or test_loss < best_loss
